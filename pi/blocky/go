@@ -1,0 +1,66 @@
+#! /bin/bash
+function start() {
+  docker network inspect blocky >/dev/null 2>&1 || docker network create blocky
+
+  docker run -d \
+    --name blocky_app_1 \
+    --network="blocky" \
+    --network-alias="dns" \
+    --restart always \
+    -v $(pwd)/config.yml:/app/config.yml \
+    -p 4000:4000 \
+    -p 53:53/udp \
+    -p 53:53/tcp \
+    spx01/blocky:v0.20
+
+}
+
+function stop() {
+  docker stop blocky_app_1
+}
+
+function rmimages() {
+  stop
+  docker rm blocky_app_1
+}
+
+function rmall() {
+  rmimages
+  docker network rm blocky
+}
+
+function updateall() {
+  docker pull spx01/blocky:latest
+  if [[ $(docker image inspect --format='{{index .Id }}' spx01/blocky:v0.20) = $(docker inspect --format='{{index .Image }}' blocky_app_1) ]]; then
+    echo "No updated needed"
+  else
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

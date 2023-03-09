@@ -1,0 +1,10 @@
+traefik.enable=true
+traefik.http.routers.jackett.rule=Host(`jackett.exmaple.com`) 
+traefik.http.routers.jackett_insecure.rule=Host(`jackett.exmaple.com`) 
+traefik.http.routers.jackett_insecure.middlewares=sslre@file,gtp@file
+traefik.http.routers.jackett.middlewares=gtp@file
+traefik.http.routers.jackett.tls=true
+traefik.http.routers.jackett.tls.certresolver=le
+
+traefik.http.routers.jackett_insecure.entrypoints=web
+traefik.http.routers.jackett.entrypoints=websecure

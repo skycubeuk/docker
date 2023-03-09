@@ -1,0 +1,45 @@
+[entryPoints]
+
+  [entryPoints.web]
+    address = ":80"
+
+  [entryPoints.websecure]
+    address = ":443"
+
+[certificatesResolvers.le.acme]
+  email = "admin@exmaple.com"
+  storage = "acme.json"
+  caServer = "https://acme-v02.api.letsencrypt.org/directory"
+  
+[certificatesResolvers.le.acme.dnsChallenge]
+  provider = "cloudflare"
+  delayBeforeCheck = 60
+  resolvers = ["1.1.1.1:53", "8.8.8.8:53"]
+
+[Providers]
+  [Providers.Docker]
+    Watch = true
+    ExposedByDefault = false
+    network = "proxy"
+  [providers.file]
+    filename = "/provider.toml"
+[http.middlewares]
+  [http.middlewares.https-redirect.redirectscheme]
+    scheme = "https"
+
+[api]
+  dashboard = true
+
+[pilot]
+  dashboard = false
+
+[accessLog]
+  filePath = "/access.log"
+
+  
+#[log]
+#  level = "DEBUG"
+
+#[serversTransport]
+#  insecureSkipVerify = true
+

@@ -1,0 +1,9 @@
+traefik.enable=true
+traefik.http.routers.audiobook.rule=Host(`audiobook.exmaple.com`)
+traefik.http.routers.audiobook_insecure.rule=Host(`audiobook.exmaple.com`)
+traefik.http.routers.audiobook_insecure.middlewares=sslre@file,gtp@file
+traefik.http.routers.audiobook.middlewares=gtp@file
+traefik.http.routers.audiobook.tls=true
+traefik.http.routers.audiobook.tls.certresolver=le
+traefik.http.routers.audiobook_insecure.entrypoints=web
+traefik.http.routers.audiobook.entrypoints=websecure

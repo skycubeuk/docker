@@ -1,0 +1,72 @@
+#! /bin/bash
+
+function start() {
+docker network inspect dhcpnet  >/dev/null 2>&1 || docker network create -d macvlan --subnet=192.168.0.0/24 --ip-range=192.168.0.240/30 --gateway=192.168.0.1 -o parent=eth0 dhcpnet
+docker volume inspect dhcp_config >/dev/null 2>&1 || docker volume create dhcp_config
+docker pull alpine:latest
+docker build . -t dhcp
+
+docker run -d \
+    --name dhcp \
+    --network="dhcpnet" \
+    --restart always \
+    -v $(pwd)/dhcpd.conf:/etc/dhcp/dhcpd.conf \
+    -v "dhcp_config:/var/lib/dhcp" \
+    dhcp
+
+}
+
+function stop() {
+  docker stop dhcp
+}
+
+function rmimages() {
+  stop
+  docker rm dhcp
+}
+
+function rmall() {
+  rmimages
+  docker volume rm dhcp
+}
+
+
+function updateall() {
+  #Pull Images
+docker pull alpine:latest
+docker build . -t dhcp
+  #Check if Image has changed
+  if [[ $(docker image inspect --format='{{index .Id }}' dhcp) = $(docker inspect --format='{{index .Image }}' dhcp) ]]; then
+    echo "No updated needed"
+  else
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

@@ -1,0 +1,72 @@
+#! /bin/bash
+function start() {
+  docker network inspect proxy >/dev/null 2>&1 || docker network create --subnet=172.20.0.0/16 --gateway=172.20.0.1 proxy
+  docker run -d \
+    --name traefik_reverse-proxy_1 \
+    --restart always \
+    --network="proxy" \
+    -p 80:80 \
+    -p 443:443 \
+    -v "/var/run/docker.sock:/var/run/docker.sock" \
+    -v "/$(pwd)/acme.json:/acme.json" \
+    -v "/$(pwd)/traefik.toml:/traefik.toml" \
+    -v "/$(pwd)/access.log:/access.log" \
+    -v "/$(pwd)/provider.toml:/provider.toml" \
+    --env-file ./traefik.environment \
+    traefik:v2.8 --configFile=/traefik.toml
+
+
+function stop() {
+  docker stop traefik_reverse-proxy_1
+}
+
+function rmimages() {
+  stop
+  docker rm traefik_reverse-proxy_1
+}
+
+function rmall() {
+  docker network rm proxy
+  rmimages
+
+}
+
+function updateall() {
+  #Pull Images
+  docker pull traefik:v2.8
+
+
+  #Check if Image has changed
+  if [[ $(docker image inspect --format='{{index .Id }}' traefik:v2.8) = $(docker inspect --format='{{index .Image }}' traefik_reverse-proxy_1) ]]; then
+    echo "No updated needed"
+  else
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

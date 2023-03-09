@@ -1,0 +1,71 @@
+#! /bin/bash
+function start() {
+  docker volume inspect abconf >/dev/null 2>&1 || docker volume create abconf
+  docker volume inspect abmeta >/dev/null 2>&1 || docker volume create abmeta
+
+docker run -d \
+  --network="proxy" \
+  -v abconf:/config \
+  -v abmeta:/metadata \
+  -v /usr/share/media/AudioBooks:/audiobooks \
+  -v /usr/share/media/podcasts:/podcasts \
+  --restart always \
+  --label-file ./audiobookshelf.label \
+  --name audiobookshelf \
+  ghcr.io/advplyr/audiobookshelf
+
+}
+
+function stop() {
+  docker stop audiobookshelf
+}
+
+function rmimages() {
+  stop
+  docker rm audiobookshelf
+}
+
+function rmall() {
+  rmimages
+  docker volume rm abconf
+  docker volume rm abmeta
+}
+
+function updateall() {
+  #Pull Images
+  docker pull ghcr.io/advplyr/audiobookshelf
+
+  #Check if Image has changed
+  if [[ $(docker image inspect --format='{{index .Id }}' ghcr.io/advplyr/audiobookshelf) = $(docker inspect --format='{{index .Image }}' audiobookshelf) ]]; then
+    echo "No updated needed"
+  else
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

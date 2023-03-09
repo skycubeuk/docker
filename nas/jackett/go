@@ -1,0 +1,69 @@
+#! /bin/bash
+function start() {
+  docker volume inspect jackett_config >/dev/null 2>&1 || docker volume create jackett_config
+  docker volume inspect jackett_downloads >/dev/null 2>&1 || docker volume create jackett_downloads
+
+  docker run -d \
+    --network="proxy" \
+    --name jackett_app_1 \
+    --restart always \
+    -v "jackett_downloads:/downloads" \
+    -v "jackett_config:/config" \
+    --label-file ./jackett.label \
+    linuxserver/jackett:latest
+}
+
+function stop() {
+  docker stop jackett_app_1
+}
+
+function rmimages() {
+  stop
+  docker rm jackett_app_1
+}
+
+function rmall() {
+  rmimages
+  docker volume rm jackett_config
+  docker volume rm jackett_downloads
+}
+
+function updateall() {
+  #Pull Images
+  docker pull linuxserver/jackett:latest
+
+  #Check if Image has changed
+  if [[ $(docker image inspect --format='{{index .Id }}' linuxserver/jackett:latest) = $(docker inspect --format='{{index .Image }}' jackett_app_1) ]]; then
+    echo "No updated needed"
+  else
+    stop
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

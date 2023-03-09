@@ -1,0 +1,70 @@
+#! /bin/bash
+function start() {
+  docker volume inspect jellyfin_cache >/dev/null 2>&1 || docker volume create jellyfin_cache
+  docker volume inspect jellyfin_config >/dev/null 2>&1 || docker volume create jellyfin_config
+
+  docker run -d \
+    --network="proxy" \
+    --name jellyfin_app_1 \
+    --restart always \
+    -v "jellyfin_cache:/cache" \
+    -v "jellyfin_config:/config" \
+    -v "/usr/share/media/:/media" \
+    --label-file ./jellyfin.label \
+    jellyfin/jellyfin:latest
+}
+
+function stop() {
+  docker stop jellyfin_app_1
+}
+
+function rmimages() {
+  stop
+  docker rm jellyfin_app_1
+}
+
+function rmall() {
+  rmimages
+  docker volume rm jellyfin_cache
+  docker volume rm jellyfin_config
+}
+
+function updateall() {
+  #Pull Images
+  docker pull jellyfin/jellyfin:latest
+
+  #Check if Image has changed
+  if [[ $(docker image inspect --format='{{index .Id }}' jellyfin/jellyfin:latest) = $(docker inspect --format='{{index .Image }}' jellyfin_app_1) ]]; then
+    echo "No updated needed"
+  else
+    stop
+    rmimages
+    start
+    exit 0
+  fi
+
+}
+
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+rm)
+  rmimages
+  ;;
+rma)
+  rmall
+  ;;
+update)
+  updateall
+  ;;
+*)
+  echo "Usage: go {start|stop|rm|rma|update}"
+  exit 1
+  ;;
+esac
+
+exit 0

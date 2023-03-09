@@ -1,0 +1,21 @@
+[http.middlewares]
+  [http.middlewares.gtp.headers]
+    [http.middlewares.gtp.headers.customResponseHeaders]
+      X-Clacks-Overhead = "GNU Terry Pratchett"
+  [http.middlewares.sts.headers]
+    stsSeconds = 15552000
+  [http.middlewares.sslre.headers]
+    sslRedirect = true
+[http.routers.my-api]
+  rule = "Host(`traefik.exmaple.com`)"
+  service = "api@internal"
+  entrypoints = "websecure"
+  middlewares = ["auth"]
+  [http.routers.my-api.tls]
+    certResolver = "le"
+
+[http.routers.my-api-insecure]
+  rule = "Host(`traefik.exmaple.com`)"
+  middlewares = ["sslre"]
+  service = "api@internal"
+  entrypoints = "web"
